@@ -1,0 +1,22 @@
+version: "2.4"
+services:
+  redis: 
+    image: redis:5-alpine
+    command: redis-server --appendonly yes
+  db:
+    image: postgres:12-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: example
+  application:
+    image: node:12-alpine
+    working_dir: /app
+    environment:
+      PGUSER: postgres
+      PGHOST: db
+      PGPASSWORD: example
+      PGDATABASE: postgres
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    command: npm run dev
