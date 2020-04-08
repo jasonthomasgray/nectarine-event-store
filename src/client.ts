@@ -11,19 +11,23 @@ async function writeEvent(
   data: string,
 ): Promise<number> {
   return new Promise((resolve, reject) => {
+    console.log('make event proto');
     const event = new Event();
     event.setEntityid(entityId);
     event.setType(entityType);
     event.setData(JSON.stringify(data));
     event.setVersion(currentVersion);
 
+    console.log('filled event proto');
     client.writeEvent(event, (err, response) => {
       if (err) {
         console.log(err);
         reject(err);
         return;
       }
+      console.log('response', response);
       if (response) {
+        console.log('got a valid response');
         const newVersion = response.getVersion();
         resolve(newVersion);
       }
@@ -36,25 +40,32 @@ async function readEvents<T>(client: EventStoreClient, entityId: string): Promis
 
 async function test(): Promise<void> {
   const id = uuid();
-  const eventClient = new EventStoreClient('server::4422', grpc.credentials.createInsecure());
+  console.log('Entity Id = ', id);
+  const eventClient = new EventStoreClient('server:4422', grpc.credentials.createInsecure());
+  console.log('EventClient created');
   try {
-    await writeEvent(eventClient, 'SomeEntity', id, 0, JSON.stringify({
+    let version = 0;
+    console.log(`gonna write version ${version}`);
+    version = await writeEvent(eventClient, 'SomeEntity', id, version, JSON.stringify({
       type: 'EntityCreated',
       name: '',
       value: 'here we are yo',
     }));
 
-    await writeEvent(eventClient, 'SomeEntity', id, 1, JSON.stringify({
+    console.log(`gonna write version ${version}`);
+    version = await writeEvent(eventClient, 'SomeEntity', id, version, JSON.stringify({
       type: 'EntityUpdated',
       name: 'Steve',
       value: 5,
     }));
 
-    await writeEvent(eventClient, 'SomeEntity', id, 2, JSON.stringify({
+    console.log(`gonna write version ${version}`);
+    version = await writeEvent(eventClient, 'SomeEntity', id, version, JSON.stringify({
       type: 'EntityUpdated',
       name: 'Steven',
       value: 12,
     }));
+    console.log(`Wrote event ${version} for ${id}`);
   } catch (err) {
     console.log(err);
   }

@@ -8,6 +8,8 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: example
+    volumes:
+      - ./db_init:/docker-entrypoint-initdb.d
   server:
     image: node:12-alpine
     working_dir: /app

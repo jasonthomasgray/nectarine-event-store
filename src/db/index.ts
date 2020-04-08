@@ -42,17 +42,25 @@ export interface DBClient {
 
 
 export class PGClient implements DBClient {
-  private ready: Promise<void>;
+  private ready: Promise<boolean>;
 
   private client: Client;
 
   constructor() {
     this.client = new Client();
-    this.ready = this.client.connect();
+    this.ready = this.client.connect()
+      .then((): boolean => true)
+      .catch((err): boolean => {
+        console.error(err);
+        return false;
+      });
   }
 
   async startTransaction(): Promise<void> {
-    await this.ready;
+    const isReady = await this.ready;
+    if (!isReady) {
+      throw new Error('Unable to connect to DB');
+    }
     await this.client.query('BEGIN;');
   }
 

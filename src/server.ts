@@ -45,6 +45,7 @@ async function readEventsFromDB<T>(client: DBClient, entityId: string): Promise<
 function writeEvent(client: DBClient): grpc.handleUnaryCall<Event, Response> {
   return (call, callback): void => {
     const event = call.request;
+    console.log('Received request', event.getEntityid());
 
     writeEventToDB(
       client,
@@ -70,7 +71,7 @@ function writeEvent(client: DBClient): grpc.handleUnaryCall<Event, Response> {
 
 function getServer(client: DBClient): grpc.Server {
   const server = new grpc.Server();
-  server.addProtoService(EventStoreService, {
+  server.addService(EventStoreService, {
     writeEvent: writeEvent(client),
   });
   return server;
@@ -84,4 +85,7 @@ async function runServer(): Promise<void> {
   server.start();
 }
 
-runServer();
+runServer()
+  .catch((err): void => {
+    console.error(err);
+  });
