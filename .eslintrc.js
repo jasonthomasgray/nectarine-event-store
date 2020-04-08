@@ -3,6 +3,7 @@ module.exports = {
     es6: true,
     node: true,
   },
+  ignorePatterns: ["src/protos/gen/"],
   extends: [
     'airbnb-base',
     "plugin:@typescript-eslint/recommended",

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package eventstore;
+
+service EventStore {
+  rpc writeEvent(Event) returns (Version);
+}
+
+message Event {
+  string entityId = 1;
+  string type = 2;
+  Version version = 3;
+  string data = 4;
+}
+
+message Version {
+  int32 currentVersion = 1;
+  int32 nextVersion = 2;
+}

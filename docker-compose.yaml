@@ -8,7 +8,7 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: example
-  application:
+  server:
     image: node:12-alpine
     working_dir: /app
     environment:
@@ -19,4 +19,16 @@ services:
     volumes:
       - ./:/app
       - /app/node_modules
+    command: npm run dev-server
+  application:
+    image: node:12-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - /app/node_modules
     command: npm run dev
+  protoc:
+    image: namely/protoc-all
+    volumes:
+      - ./src/protos:/defs
+    command: -f events.proto -l node -o gen --with-typescript

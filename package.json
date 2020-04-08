@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint --ext .ts ./src",
-    "dev": "npm ci && ts-node-dev --respawn --transpileOnly src/index.ts"
+    "dev": "npm ci && ts-node-dev --respawn --transpileOnly src/index.ts",
+    "dev-server": "npm ci && ts-node-dev --respawn --transpileOnly src/server.ts"
   },
   "author": "Jason Gray <dazedrobot@gmail.com>",
   "license": "GPL-3.0-only",
@@ -22,6 +23,9 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
+    "@grpc/proto-loader": "^0.5.3",
+    "grpc": "^1.24.2",
+    "grpc-web": "^1.0.7",
     "pg": "^7.18.2",
     "uuid": "^7.0.2"
   }

@@ -37,6 +37,7 @@ export interface DBClient {
   insertEvent<T>(entityId: string, data: T, version: EntityVersion): Promise<void>;
   commitTransaction(): Promise<void>;
   rollbackTransaction(): Promise<void>;
+  readEvents<T>(entityId: string): Promise<T[]>;
 }
 
 
@@ -99,11 +100,13 @@ export class PGClient implements DBClient {
   async rollbackTransaction(): Promise<void> {
     await this.client.query('ROLLBACK;');
   }
-}
 
-export default async function initialiseDB(): Promise<Client> {
-  const client = new Client();
-
-  await client.connect();
-  return client;
+  async readEvents<T>(entityId: string): Promise<T[]> {
+    await this.ready;
+    const eventsResults = await this.client.query(
+      'SELECT data from events WHERE entityid = $1 ORDER BY version ASC',
+      [entityId],
+    );
+    return eventsResults.rows.map((row): T => row.data);
+  }
 }

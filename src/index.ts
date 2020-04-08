@@ -1,38 +1,36 @@
+import net from 'net';
 import { v4 as uuid } from 'uuid';
-import initialiseDB, { DBClient, PGClient } from './db';
 
-interface VersionQueryRow {
-  version: number;
-}
+const client = net.createConnection({
+  port: 4422,
+  host: 'server',
+}, () => {
+  // 'connect' listener.
+  console.log('connected to server!');
+});
+
+client.on('data', (data) => {
+  console.log(data.toString());
+  client.end();
+});
+
+client.on('end', () => {
+  console.log('disconnected from server');
+});
 
 async function writeEvent<T>(
   client: DBClient,
   entityType: string,
   entityId: string,
   data: T,
-): Promise<void> {
-  await client.startTransaction();
-  const version = await client.getEntityVersion(entityId);
-  try {
-    if (version.currentVersion === 0) {
-      await client.createEntity(entityId, entityType);
-    }
-    const didUpdate = await client.updateEntityVersion(entityId, entityType, version);
-    if (!didUpdate) {
-      throw new Error('concurrency check failed');
-    }
-
-    await client.insertEvent(entityId, data, version);
-    await client.commitTransaction();
-  } catch (err) {
-    console.log(err);
-    await client.rollbackTransaction();
-  }
+): Promise<boolean> {
+  client.write();
 }
 
+async function readEvents<T>(client: DBClient, entityId: string): Promise<T[]> {
+}
 
-async function runServer(): Promise<void> {
-  const client = new PGClient();
+async function test() {
   const id = uuid();
   try {
     await writeEvent(client, 'SomeEntity', id, {
@@ -56,5 +54,3 @@ async function runServer(): Promise<void> {
     console.log(err);
   }
 }
-
-runServer();
