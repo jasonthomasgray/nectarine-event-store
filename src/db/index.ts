@@ -34,7 +34,7 @@ export interface DBClient {
     entityType: string,
     version: EntityVersion
   ): Promise<boolean>;
-  insertEvent<T>(entityId: string, data: T, version: EntityVersion): Promise<void>;
+  insertEvent<T>(entityId: string, data: T, version: number): Promise<void>;
   commitTransaction(): Promise<void>;
   rollbackTransaction(): Promise<void>;
   readEvents<T>(entityId: string): Promise<T[]>;
@@ -86,10 +86,10 @@ export class PGClient implements DBClient {
     return true;
   }
 
-  async insertEvent<T>(entityId: string, data: T, version: EntityVersion): Promise<void> {
+  async insertEvent<T>(entityId: string, data: T, version: number): Promise<void> {
     await this.client.query(
       'INSERT INTO events (entityid, data, version) VALUES ($1, $2, $3);',
-      [entityId, data, version.nextVersion],
+      [entityId, data, version],
     );
   }
 

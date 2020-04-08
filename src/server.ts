@@ -1,6 +1,5 @@
-import net from 'net';
 import grpc from 'grpc';
-import { Event, Version } from './protos/gen/events_pb';
+import { Event, Response } from './protos/gen/events_pb';
 import { EventStoreService } from './protos/gen/events_grpc_pb';
 import { DBClient, PGClient } from './db';
 
@@ -12,22 +11,26 @@ async function writeEventToDB<T>(
   client: DBClient,
   entityType: string,
   entityId: string,
+  expectedVersion: number,
   data: T,
 ): Promise<number | false> {
   await client.startTransaction();
-  const version = await client.getEntityVersion(entityId);
   try {
-    if (version.currentVersion === 0) {
+    if (expectedVersion === 0) {
       await client.createEntity(entityId, entityType);
     }
-    const didUpdate = await client.updateEntityVersion(entityId, entityType, version);
+    const nextVersion = expectedVersion + 1;
+    const didUpdate = await client.updateEntityVersion(entityId, entityType, {
+      currentVersion: expectedVersion,
+      nextVersion,
+    });
     if (!didUpdate) {
       throw new Error('concurrency check failed');
     }
 
-    await client.insertEvent(entityId, data, version);
+    await client.insertEvent(entityId, data, nextVersion);
     await client.commitTransaction();
-    return version.nextVersion;
+    return nextVersion;
   } catch (err) {
     console.log(err);
     await client.rollbackTransaction();
@@ -39,26 +42,28 @@ async function readEventsFromDB<T>(client: DBClient, entityId: string): Promise<
   return client.readEvents<T>(entityId);
 }
 
-function writeEvent(client: DBClient): grpc.handleUnaryCall<Event, Version> {
-  return (call, callback) => {
+function writeEvent(client: DBClient): grpc.handleUnaryCall<Event, Response> {
+  return (call, callback): void => {
     const event = call.request;
 
     writeEventToDB(
       client,
       event.getType(),
       event.getEntityid(),
+      event.getVersion(),
       JSON.parse(event.getData()),
-    ).then((nextVersion) => {
-      if (nextVersion === false) {
+    ).then((writtenVersion) => {
+      if (writtenVersion === false) {
         callback({
           name: 'Version Error',
           code: grpc.status.FAILED_PRECONDITION,
-          message: 'version changed',
+          message: 'versionChanged',
         }, null);
+        return;
       }
-      const version = new Version();
-      version.setCurrentversion(event.getVersion()?.getNextversion());
-      return version;
+      const response = new Response();
+      response.setVersion(writtenVersion);
+      callback(null, response);
     });
   };
 }
@@ -74,10 +79,9 @@ function getServer(client: DBClient): grpc.Server {
 
 async function runServer(): Promise<void> {
   const dbClient = new PGClient();
-  const server = getServer();
-  server.listen(4422, () => {
-    console.log('opened server on', server.address());
-  });
+  const server = getServer(dbClient);
+  server.bind('0.0.0.0:4422', grpc.ServerCredentials.createInsecure());
+  server.start();
 }
 
 runServer();

@@ -3,17 +3,16 @@ syntax = "proto3";
 package eventstore;
 
 service EventStore {
-  rpc writeEvent(Event) returns (Version);
+  rpc writeEvent(Event) returns (Response);
 }
 
 message Event {
   string entityId = 1;
   string type = 2;
-  Version version = 3;
+  int32 version = 3;
   string data = 4;
 }
 
-message Version {
-  int32 currentVersion = 1;
-  int32 nextVersion = 2;
+message Response {
+  int32 version = 1;
 }
